@@ -2,6 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { envs } from 'src/config';
 import Stripe from 'stripe';
 import { PaymentSessionDto } from './dto/payment-session.dto';
+import { Request, Response } from 'express';
+
+declare module 'express' {
+  interface Request {
+    rawBody: Buffer;
+  }
+}
 
 @Injectable()
 export class PaymentsService {
@@ -25,12 +32,49 @@ export class PaymentsService {
       payment_intent_data: {
         metadata: {},
       },
-      // payment_method_types: ['card'],
       line_items: lineItems,
       mode: 'payment',
       success_url: 'http://localhost:3003/payments/success',
       cancel_url: 'http://localhost:3003/payments/canceled',
     });
     return session;
+  }
+
+  stripeWebhook(req: Request, res: Response) {
+    const sig = req.headers['stripe-signature'] as string;
+
+    let event: Stripe.Event;
+
+    // Real
+    const endpointSecret = envs.stripeEndpointSecret;
+
+    try {
+      event = this.stripe.webhooks.constructEvent(
+        req['rawBody'],
+        sig,
+        endpointSecret,
+      );
+    } catch (err) {
+      res.status(400).send(`Webhook Error: ${(err as Error).message}`);
+      return;
+    }
+
+    switch (event.type) {
+      case 'charge.succeeded': {
+        const chargeSucceeded = event.data.object;
+        // TODO: call our microservice
+        // console.log({
+        //   metadata: chargeSucceeded.metadata,
+        //   orderId: chargeSucceeded.metadata.orderId,
+        // });
+        console.log(chargeSucceeded);
+        break;
+      }
+
+      default:
+        console.log(`Event ${event.type} not handled`);
+    }
+
+    return res.status(200).json({ sig });
   }
 }
