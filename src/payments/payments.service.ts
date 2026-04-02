@@ -15,7 +15,7 @@ export class PaymentsService {
   private readonly stripe = new Stripe(envs.stripeSecret);
 
   async createPaymentSession(paymentSessionDto: PaymentSessionDto) {
-    const { currency, items } = paymentSessionDto;
+    const { currency, items, orderId } = paymentSessionDto;
 
     const lineItems = items.map((item) => ({
       price_data: {
@@ -30,12 +30,12 @@ export class PaymentsService {
 
     const session = await this.stripe.checkout.sessions.create({
       payment_intent_data: {
-        metadata: {},
+        metadata: { orderId },
       },
-      line_items: lineItems,
       mode: 'payment',
-      success_url: 'http://localhost:3003/payments/success',
-      cancel_url: 'http://localhost:3003/payments/canceled',
+      line_items: lineItems,
+      success_url: envs.stripeSuccessUrl,
+      cancel_url: envs.stripeCancelUrl,
     });
     return session;
   }
@@ -63,11 +63,10 @@ export class PaymentsService {
       case 'charge.succeeded': {
         const chargeSucceeded = event.data.object;
         // TODO: call our microservice
-        // console.log({
-        //   metadata: chargeSucceeded.metadata,
-        //   orderId: chargeSucceeded.metadata.orderId,
-        // });
-        console.log(chargeSucceeded);
+        console.log({
+          metadata: chargeSucceeded.metadata,
+          orderId: chargeSucceeded.metadata.orderId,
+        });
         break;
       }
 
