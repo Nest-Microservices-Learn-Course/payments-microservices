@@ -16,7 +16,7 @@ export class PaymentsService {
 
   async createPaymentSession(paymentSessionDto: PaymentSessionDto) {
     const { currency, items, orderId } = paymentSessionDto;
-
+    console.log(paymentSessionDto);
     const lineItems = items.map((item) => ({
       price_data: {
         currency: currency,
@@ -37,7 +37,11 @@ export class PaymentsService {
       success_url: envs.stripeSuccessUrl,
       cancel_url: envs.stripeCancelUrl,
     });
-    return session;
+    return {
+      cancelUrl: session.cancel_url,
+      successUrl: session.success_url,
+      url: session.url,
+    };
   }
 
   stripeWebhook(req: Request, res: Response) {
