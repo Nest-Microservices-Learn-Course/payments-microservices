@@ -1,5 +1,5 @@
 # dependency installer
-FROM node:25-alpine3.22 as deps
+FROM node:25-alpine3.22 AS deps
 
 WORKDIR /usr/src/app
 COPY package*.json ./
